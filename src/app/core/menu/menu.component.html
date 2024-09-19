@@ -1,1 +1,18 @@
-<p>menu works!</p>
+<mat-nav-list>
+  <div>
+    <mat-list-item *ngFor="let menu of this.menuList">
+      <a [routerLink]="menu.url" routerLinkActive="router-link-active">
+        <button mat-icon-button>
+          <img src="" alt="" />
+          <span>Opción</span>
+        </button>
+      </a>
+    </mat-list-item>
+  </div>
+  <mat-list-item>
+    <button mat-icon-button>
+      <mat-icon *ngIf="this.isExpanded">arrow_back_ios</mat-icon>
+      <mat-icon *ngIf="!this.isExpanded">arrow_forward</mat-icon>
+    </button>
+  </mat-list-item>
+</mat-nav-list>
