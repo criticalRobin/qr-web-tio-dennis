@@ -91,7 +91,7 @@ export class PageListComponent {
   ];
   records: IEmployee[] = [];
   totalRecords = this.data.length;
-
+  currentPage = 0;
   bottomSheet: MatBottomSheet = inject(MatBottomSheet);
   dialog = inject(MatDialog);
   snackBar = inject(MatSnackBar);
@@ -101,9 +101,8 @@ export class PageListComponent {
   }
 
   loadEmployees() {
-    this.records = this.data;
-    console.log(this.records);
-    this.changePage(0);
+    this.records = [...this.data];
+    this.changePage(this.currentPage);
   }
 
   delete(id: number) {
@@ -128,12 +127,19 @@ export class PageListComponent {
         return;
       }
       if (response.id) {
-        const employee = { ...response };
+        const index = this.data.findIndex(
+          (employee) => employee.id === response.id
+        );
+        if (index !== -1) {
+          this.data[index] = response;
+        }
+        this.totalRecords = this.data.length;
         this.loadEmployees();
         this.showMessage('Registro actualizado');
       } else {
-        const employee = { ...response };
-        this.data.push(employee);
+        const newEmployee = { ...response, id: this.data.length + 1 };
+        this.data.push(newEmployee);
+        this.totalRecords = this.data.length;
         this.loadEmployees();
         this.showMessage('Registro exitoso');
       }
@@ -163,5 +169,21 @@ export class PageListComponent {
     const pageSize = environment.PAGE_SIZE;
     const skip = pageSize * page;
     this.data = this.records.slice(skip, skip + pageSize);
+  }
+
+  editRecord(record: any) {
+    const dialogRef = this.dialog.open(FormComponent, {
+      data: record,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        const index = this.data.findIndex((r) => r.id === result.id);
+        if (index !== -1) {
+          this.data[index] = result;
+          this.loadEmployees();
+        }
+      }
+    });
   }
 }

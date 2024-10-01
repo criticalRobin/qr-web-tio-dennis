@@ -29,7 +29,7 @@ export class FormComponent {
 
   loadForm() {
     this.group = new FormGroup({
-      id: new FormControl(this.data?._id),
+      id: new FormControl(this.data?.id),
       firstName: new FormControl(this.data?.firstName, Validators.required),
       lastName: new FormControl(this.data?.lastName, Validators.required),
       phoneNumber: new FormControl(this.data?.phoneNumber, Validators.required),

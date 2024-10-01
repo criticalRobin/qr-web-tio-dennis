@@ -1,1 +1,40 @@
-<p>form works!</p>
+<mat-toolbar>
+  <h3>{{ title }}</h3>
+  <button mat-icon-button mat-dialog-close>
+    <mat-icon>close</mat-icon>
+  </button>
+</mat-toolbar>
+<mat-dialog-content>
+  <form class="container" [formGroup]="group">
+    <mat-form-field appearance="outline">
+      <mat-label>QR</mat-label>
+      <input type="text" matInput formControlName="qrId" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Descripción</mat-label>
+      <input type="text" matInput formControlName="description" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Cliente</mat-label>
+      <input type="text" matInput formControlName="client" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Empleado</mat-label>
+      <input type="text" matInput formControlName="employee" />
+    </mat-form-field>
+    <div fxLayout fxLayoutAlign="end" fxLayoutGap="10px">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        [disabled]="group.invalid"
+        (click)="save()"
+      >
+        Grabar
+      </button>
+      <button mat-button color="primary" type="button" mat-dialog-close>
+        Cancelar
+      </button>
+    </div>
+  </form>
+</mat-dialog-content>

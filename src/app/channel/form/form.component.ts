@@ -31,7 +31,7 @@ export class FormComponent {
     this.group = new FormGroup({
       id: new FormControl(this.data?.id),
       name: new FormControl(this.data?.name, Validators.required),
-      address: new FormControl(this.data?.extension, Validators.required),
+      extension: new FormControl(this.data?.extension, Validators.required),
     });
   }
 }

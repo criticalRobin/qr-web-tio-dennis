@@ -68,7 +68,7 @@ export class PageListComponent {
   ];
   records: IChannel[] = [];
   totalRecords = this.data.length;
-
+  currentPage = 0;
   bottomSheet: MatBottomSheet = inject(MatBottomSheet);
   dialog = inject(MatDialog);
   snackBar = inject(MatSnackBar);
@@ -78,9 +78,8 @@ export class PageListComponent {
   }
 
   loadChannels() {
-    this.records = this.data;
-    console.log(this.records);
-    this.changePage(0);
+    this.records = [...this.data];
+    this.changePage(this.currentPage);
   }
 
   delete(id: number) {
@@ -105,12 +104,19 @@ export class PageListComponent {
         return;
       }
       if (response.id) {
-        const channel = { ...response };
+        const index = this.data.findIndex(
+          (channel) => channel.id === response.id
+        );
+        if (index !== -1) {
+          this.data[index] = response;
+        }
+        this.totalRecords = this.data.length;
         this.loadChannels();
         this.showMessage('Registro actualizado');
       } else {
-        const channel = { ...response };
-        this.data.push(channel);
+        const newChannel = { ...response, id: this.data.length + 1 };
+        this.data.push(newChannel);
+        this.totalRecords = this.data.length;
         this.loadChannels();
         this.showMessage('Registro exitoso');
       }
@@ -140,5 +146,21 @@ export class PageListComponent {
     const pageSize = environment.PAGE_SIZE;
     const skip = pageSize * page;
     this.data = this.records.slice(skip, skip + pageSize);
+  }
+
+  editRecord(record: any) {
+    const dialogRef = this.dialog.open(FormComponent, {
+      data: record,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        const index = this.data.findIndex((r) => r.id === result.id);
+        if (index !== -1) {
+          this.data[index] = result;
+          this.loadChannels();
+        }
+      }
+    });
   }
 }
