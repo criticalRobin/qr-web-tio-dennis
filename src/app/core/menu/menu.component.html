@@ -1,18 +1,20 @@
-<mat-nav-list>
+<mat-nav-list class="container">
   <div>
-    <mat-list-item *ngFor="let menu of this.menuList">
-      <a [routerLink]="menu.url" routerLinkActive="router-link-active">
+    <mat-list-item *ngFor="let menu of listMenu">
+      <a [routerLink]="menu.url">
         <button mat-icon-button>
-          <img src="" alt="" />
-          <span>Opción</span>
+          <mat-icon [svgIcon]="menu.icon"></mat-icon>
+          <span *ngIf="expanded">{{menu.title}}</span>
         </button>
       </a>
     </mat-list-item>
   </div>
-  <mat-list-item>
-    <button mat-icon-button>
-      <mat-icon *ngIf="this.isExpanded">arrow_back_ios</mat-icon>
-      <mat-icon *ngIf="!this.isExpanded">arrow_forward</mat-icon>
-    </button>
-  </mat-list-item>
+  <div>
+    <mat-list-item>
+      <button mat-icon-button color="accent" (click)="toggleExpanded()">
+        <mat-icon *ngIf="expanded">arrow_back_ios</mat-icon>
+        <mat-icon *ngIf="!expanded">arrow_forward_ios</mat-icon>
+      </button>
+    </mat-list-item>
+  </div>
 </mat-nav-list>
