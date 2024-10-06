@@ -3,16 +3,12 @@ import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { KeypadButton } from 'src/app/shared/interfaces/keypad.interface';
-import { MetaDataColumn } from 'src/app/shared/interfaces/metacolumn.interface';
 import { FormComponent } from '../form/form.component';
 import { DownloadComponent } from 'src/app/shared/download/download.component';
 import { environment } from 'src/environments/environment.development';
-
-export interface IChannel {
-  id: number;
-  name: string;
-  extension: string;
-}
+import { IChannel } from '../interfaces/channel.interface';
+import { MetaDataColumn } from 'src/app/shared/interfaces/metacolumn.interface';
+import { ChannelService } from '../services/channel.service';
 
 @Component({
   selector: 'qr-page-list',
@@ -20,39 +16,7 @@ export interface IChannel {
   styleUrls: ['./page-list.component.css'],
 })
 export class PageListComponent {
-  data: IChannel[] = [
-    {
-      id: 1,
-      name: 'Extension 1',
-      extension: '111AB',
-    },
-    {
-      id: 6,
-      name: 'Extension 1',
-      extension: '111AB',
-    },
-    {
-      id: 5,
-      name: 'Extension 1',
-      extension: '111AB',
-    },
-    {
-      id: 4,
-      name: 'Extension 1',
-      extension: '111AB',
-    },
-    {
-      id: 3,
-      name: 'Extension 1',
-      extension: '111AB',
-    },
-    {
-      id: 2,
-      name: 'Extension 1',
-      extension: '111AB',
-    },
-  ];
-  metaDataColumns: MetaDataColumn[] = [
+  metarecordsColumns: MetaDataColumn[] = [
     { field: 'id', title: 'ID' },
     { field: 'name', title: 'CANAL' },
     { field: 'extension', title: 'EXTENSIÓN' },
@@ -67,28 +31,44 @@ export class PageListComponent {
     { icon: 'add', tooltip: 'AGREGAR', color: 'primary', action: 'NEW' },
   ];
   records: IChannel[] = [];
-  totalRecords = this.data.length;
+  totalRecords = 0;
   currentPage = 0;
-  bottomSheet: MatBottomSheet = inject(MatBottomSheet);
+  bottomSheet = inject(MatBottomSheet);
   dialog = inject(MatDialog);
   snackBar = inject(MatSnackBar);
+  channelSrv = inject(ChannelService);
 
   constructor() {
     this.loadChannels();
   }
 
   loadChannels() {
-    this.records = [...this.data];
-    this.changePage(this.currentPage);
+    this.channelSrv.getChannels().subscribe({
+      next: (res: IChannel[]) => {
+        this.records = res;
+        this.totalRecords = res.length;
+        this.changePage(0);
+      },
+      error: (err) => console.error(err),
+    });
+  }
+
+  tryGetObject(channel: IChannel) {
+    console.log(channel);
   }
 
   delete(id: number) {
-    const position = this.data.findIndex((ind) => ind.id === id);
-    this.records = this.data.splice(position, 1);
-    this.loadChannels();
+    this.channelSrv.deleteChannel(id).subscribe({
+      next: () => {
+        this.loadChannels();
+      },
+      error: (err) => {
+        console.error(err);
+      },
+    });
   }
 
-  openForm(row: any | null = null) {
+  openForm(row: IChannel | null = null) {
     const options = {
       panelClass: 'panel-container',
       disableClose: true,
@@ -104,20 +84,29 @@ export class PageListComponent {
         return;
       }
       if (response.id) {
-        const index = this.data.findIndex(
-          (channel) => channel.id === response.id
-        );
-        if (index !== -1) {
-          this.data[index] = response;
-        }
-        this.totalRecords = this.data.length;
-        this.loadChannels();
-        this.showMessage('Registro actualizado');
+        const channel: IChannel = response;
+
+        this.channelSrv.updateChannel(response.id, channel).subscribe({
+          next: () => {
+            this.loadChannels();
+          },
+          error: (err) => {
+            console.error(err);
+          },
+        });
+
+        this.showMessage('Edición exitosa');
       } else {
-        const newChannel = { ...response, id: this.data.length + 1 };
-        this.data.push(newChannel);
-        this.totalRecords = this.data.length;
-        this.loadChannels();
+        const newChannel = { ...response };
+        this.channelSrv.createChannel(newChannel).subscribe({
+          next: () => {
+            this.loadChannels();
+          },
+          error: (err) => {
+            console.error(err);
+          },
+        });
+
         this.showMessage('Registro exitoso');
       }
     });
@@ -126,7 +115,7 @@ export class PageListComponent {
   doAction(action: string) {
     switch (action) {
       case 'DOWNLOAD':
-        this.showBottomSheet('Lista de Canales', 'canales', this.data);
+        this.showBottomSheet('Lista de Canales', 'canales', this.records);
         break;
       case 'NEW':
         this.openForm();
@@ -134,7 +123,7 @@ export class PageListComponent {
     }
   }
 
-  showBottomSheet(title: string, fileName: string, data: any) {
+  showBottomSheet(title: string, fileName: string, records: any) {
     this.bottomSheet.open(DownloadComponent);
   }
 
@@ -145,22 +134,7 @@ export class PageListComponent {
   changePage(page: number) {
     const pageSize = environment.PAGE_SIZE;
     const skip = pageSize * page;
-    this.data = this.records.slice(skip, skip + pageSize);
-  }
-
-  editRecord(record: any) {
-    const dialogRef = this.dialog.open(FormComponent, {
-      data: record,
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        const index = this.data.findIndex((r) => r.id === result.id);
-        if (index !== -1) {
-          this.data[index] = result;
-          this.loadChannels();
-        }
-      }
-    });
+    this.records = this.records.slice(skip, skip + pageSize);
+    this.currentPage = page;
   }
 }
