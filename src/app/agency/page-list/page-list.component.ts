@@ -9,6 +9,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { IAgency } from '../interfaces/agency.interface';
 import { AgencyService } from '../services/agency.service';
 import { MetaDataColumn } from 'src/app/shared/interfaces/metacolumn.interface';
+import { SharedService } from 'src/app/shared/services/shared.service';
 
 @Component({
   selector: 'qr-page-list',
@@ -17,6 +18,7 @@ import { MetaDataColumn } from 'src/app/shared/interfaces/metacolumn.interface';
 })
 export class PageListComponent {
   private readonly agencySrv: AgencyService = inject(AgencyService);
+  private readonly sharedSrv = inject(SharedService);
 
   metarecordsColumns: MetaDataColumn[] = [
     { field: 'id', title: 'ID' },
@@ -44,14 +46,7 @@ export class PageListComponent {
   }
 
   loadAgencies() {
-    this.agencySrv.getAgencies().subscribe({
-      next: (res: IAgency[]) => {
-        this.records = res;
-        this.totalRecords = res.length;
-        this.changePage(0);
-      },
-      error: (err) => console.error(err),
-    });
+    this.sharedSrv.loadData(() => this.agencySrv.getAgencies(), this);
   }
 
   tryGetObject(agency: IAgency) {
@@ -59,56 +54,33 @@ export class PageListComponent {
   }
 
   delete(id: number) {
-    this.agencySrv.deleteAgency(id).subscribe({
-      next: () => {
-        this.loadAgencies();
-      },
-      error: (err) => {
-        console.error(err);
-      },
-    });
+    this.sharedSrv.delete(
+      id,
+      () => this.agencySrv.deleteAgency(id),
+      () => this.loadAgencies()
+    );
   }
 
   openForm(row: IAgency | null = null) {
-    const options = {
-      panelClass: 'panel-container',
-      disableClose: true,
-      data: row,
-    };
-    const reference: MatDialogRef<FormComponent> = this.dialog.open(
-      FormComponent,
-      options
-    );
+    this.sharedSrv.openForm(row, FormComponent).subscribe((response) => {
+      if (!response) return;
 
-    reference.afterClosed().subscribe((response) => {
-      if (!response) {
-        return;
-      }
       if (response.id) {
-        const agency: IAgency = response;
-
-        this.agencySrv.updateAgency(response.id, agency).subscribe({
+        this.agencySrv.updateAgency(response.id, response).subscribe({
           next: () => {
             this.loadAgencies();
+            this.sharedSrv.showMessage('Edición exitosa');
           },
-          error: (err) => {
-            console.error(err);
-          },
+          error: (err) => console.error(err),
         });
-
-        this.showMessage('Edición exitosa');
       } else {
-        const newAgency = { ...response };
-        this.agencySrv.createAgency(newAgency).subscribe({
+        this.agencySrv.createAgency(response).subscribe({
           next: () => {
             this.loadAgencies();
+            this.sharedSrv.showMessage('Registro exitoso');
           },
-          error: (err) => {
-            console.error(err);
-          },
+          error: (err) => console.error(err),
         });
-
-        this.showMessage('Registro exitoso');
       }
     });
   }
@@ -126,10 +98,6 @@ export class PageListComponent {
 
   showBottomSheet(title: string, fileName: string, records: any) {
     this.bottomSheet.open(DownloadComponent);
-  }
-
-  showMessage(message: string, duration: number = 5000) {
-    this.snackBar.open(message, '', { duration });
   }
 
   changePage(page: number) {

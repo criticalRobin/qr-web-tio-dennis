@@ -9,6 +9,7 @@ import { environment } from 'src/environments/environment.development';
 import { IChannel } from '../interfaces/channel.interface';
 import { MetaDataColumn } from 'src/app/shared/interfaces/metacolumn.interface';
 import { ChannelService } from '../services/channel.service';
+import { SharedService } from 'src/app/shared/services/shared.service';
 
 @Component({
   selector: 'qr-page-list',
@@ -37,20 +38,14 @@ export class PageListComponent {
   dialog = inject(MatDialog);
   snackBar = inject(MatSnackBar);
   channelSrv = inject(ChannelService);
+  sharedSrv = inject(SharedService);
 
   constructor() {
     this.loadChannels();
   }
 
   loadChannels() {
-    this.channelSrv.getChannels().subscribe({
-      next: (res: IChannel[]) => {
-        this.records = res;
-        this.totalRecords = res.length;
-        this.changePage(0);
-      },
-      error: (err) => console.error(err),
-    });
+    this.sharedSrv.loadData(() => this.channelSrv.getChannels(), this);
   }
 
   tryGetObject(channel: IChannel) {
@@ -58,56 +53,33 @@ export class PageListComponent {
   }
 
   delete(id: number) {
-    this.channelSrv.deleteChannel(id).subscribe({
-      next: () => {
-        this.loadChannels();
-      },
-      error: (err) => {
-        console.error(err);
-      },
-    });
+    this.sharedSrv.delete(
+      id,
+      () => this.channelSrv.deleteChannel(id),
+      () => this.loadChannels()
+    );
   }
 
   openForm(row: IChannel | null = null) {
-    const options = {
-      panelClass: 'panel-container',
-      disableClose: true,
-      data: row,
-    };
-    const reference: MatDialogRef<FormComponent> = this.dialog.open(
-      FormComponent,
-      options
-    );
+    this.sharedSrv.openForm(row, FormComponent).subscribe((response) => {
+      if (!response) return;
 
-    reference.afterClosed().subscribe((response) => {
-      if (!response) {
-        return;
-      }
       if (response.id) {
-        const channel: IChannel = response;
-
-        this.channelSrv.updateChannel(response.id, channel).subscribe({
+        this.channelSrv.updateChannel(response.id, response).subscribe({
           next: () => {
             this.loadChannels();
+            this.sharedSrv.showMessage('Edición exitosa');
           },
-          error: (err) => {
-            console.error(err);
-          },
+          error: (err) => console.error(err),
         });
-
-        this.showMessage('Edición exitosa');
       } else {
-        const newChannel = { ...response };
-        this.channelSrv.createChannel(newChannel).subscribe({
+        this.channelSrv.createChannel(response).subscribe({
           next: () => {
             this.loadChannels();
+            this.sharedSrv.showMessage('Registro exitoso');
           },
-          error: (err) => {
-            console.error(err);
-          },
+          error: (err) => console.error(err),
         });
-
-        this.showMessage('Registro exitoso');
       }
     });
   }
@@ -125,10 +97,6 @@ export class PageListComponent {
 
   showBottomSheet(title: string, fileName: string, records: any) {
     this.bottomSheet.open(DownloadComponent);
-  }
-
-  showMessage(message: string, duration: number = 5000) {
-    this.snackBar.open(message, '', { duration });
   }
 
   changePage(page: number) {
